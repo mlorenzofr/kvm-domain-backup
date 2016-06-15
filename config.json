@@ -1,0 +1,14 @@
+{
+
+  "Hypervisor": [
+    "hv-01.example",
+    "hv-02.example",
+    "hv-03.example"
+  ],
+
+  "Account": {
+    "User": "libvirtd",
+    "Key": "/root/.ssh/libvirtd.rsa"
+  }
+
+}
