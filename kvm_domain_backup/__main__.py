@@ -95,10 +95,9 @@ class backup_tree:
                     if verbose:
                         print(" [rm]: %s" % dst)
                     os.unlink(dst)
-                else:
-                    if verbose:
-                        print(" [mv]: %s -> %s" % (src, dst))
-                    os.rename(src, dst)
+                if verbose:
+                    print(" [mv]: %s -> %s" % (src, dst))
+                os.rename(src, dst)
         return
 
     def get_tree(self, root):

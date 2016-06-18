@@ -4,7 +4,7 @@
 from setuptools import setup
 
 setup(name='kvm-domain-backup',
-      version='0.3.1',
+      version='0.3.2',
       description='Script to backup KVM domains (through libvirt)',
       url='',
       author='Manuel Lorenzo Frieiro',
