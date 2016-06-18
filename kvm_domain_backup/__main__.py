@@ -77,7 +77,7 @@ class backup_tree:
             os.mkdir(dst_dir)
         with open('%s/%s.xml' % (dst_dir, domain), 'w') as config:
             config.write(data)
-            self.purge_old('%s/%s.xml' % (dst_dir, domain))
+            self.purge_old('%s/%s.xml' % (hv, domain))
         return
 
     def cleanup(self, directory, verbose=False):
