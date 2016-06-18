@@ -10,11 +10,11 @@ from argparse import ArgumentParser
 
 
 class hypervisor:
-    def __init__(self, hostname, user, keyfile=''):
+    def __init__(self, credentials):
         self.domains = {}
-        self._cnx = self.connect(hostname, user, keyfile)
+        self._cnx = None
+        self._cred = credentials
         self.catchExcpts = ['libvirtError']
-        self.get_domains()
         return
 
     def __enter__(self):
@@ -29,11 +29,15 @@ class hypervisor:
                 return True
         return
 
-    def connect(self, host, user, keyfile):
+    def connect(self):
+        user = self._cred["User"]
+        keyfile = self._cred["Key"]
+        host = self._cred["Host"]
         uri = "qemu+ssh://%s@%s/system" % (user, host)
         if os.path.isfile(keyfile):
             uri = "%s?keyfile=%s" % (uri, keyfile)
-        return libvirt.openReadOnly(uri)
+        self._cnx = libvirt.openReadOnly(uri)
+        return
 
     def get_domains(self):
         dom_objs = self._cnx.listAllDomains(1)
@@ -50,6 +54,11 @@ class hypervisor:
         if domain in self.domains.keys():
             return True
         return False
+
+    def startup(self):
+        self.connect()
+        self.get_domains()
+        return
 
 
 class backup_tree:
@@ -71,14 +80,17 @@ class backup_tree:
             self.purge_old('%s.xml' % domain)
         return
 
-    def cleanup(self, verbose=False):
+    def cleanup(self, directory, verbose=False):
         if verbose:
             print("Cleanup:")
-        for leaf in self.get_tree(self.parent):
-            if leaf.split('/')[0] != self.lostdir.split('/')[-1] and \
-               leaf.find('.xml', -4) != -1:
-                dst = '%s/%s' % (self.lostdir, os.path.basename(leaf))
-                src = '%s/%s' % (self.parent, leaf)
+        src_dir = "%s/%s" % (self.parent, directory)
+        dst_dir = "%s/%s" % (self.lostdir, directory)
+        if not os.path.isdir(dst_dir):
+            os.mkdir(dst_dir)
+        for leaf in self.get_tree(src_dir):
+            if leaf.find('.xml', -4) != -1:
+                dst = '%s/%s' % (dst_dir, os.path.basename(leaf))
+                src = '%s/%s' % (src_dir, leaf)
                 if os.path.isfile(dst):
                     if verbose:
                         print(" [rm]: %s" % dst)
@@ -137,16 +149,17 @@ def main():
         print("Cannot create backup_tree")
         print(ioe.message)
         sys.exit(3)
-    bck.cleanup()
     if args.verbose:
         print("Starting backup process:")
         print(args.bck_dir)
     for hv in config['Hypervisor']:
         if args.verbose:
             print("|- %s/" % hv)
-        with hypervisor(hv,
-                        config["Account"]["User"],
-                        config["Account"]["Key"]) as kvm:
+        cnx_data = {"Host": hv}
+        cnx_data.update(config["Account"])
+        with hypervisor(cnx_data) as kvm:
+            kvm.startup()
+            bck.cleanup(hv)
             for dom in kvm.domains.keys():
                 if args.verbose:
                     print("   |- %s.xml" % dom)
